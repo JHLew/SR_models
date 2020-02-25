@@ -182,22 +182,22 @@ def compute_gradient_penalty(D, real_samples, fake_samples):
     return gradient_penalty
 
 
-# converting a torch tensor to numpy array
-def torch_tensor_to_np(x):
-    x = x.detach().cpu().numpy().transpose(0, 2, 3, 1)
-    x = np.clip(normalization(x, _from=(-1, 1), _to=(0, 255)), 0, 255).astype(np.uint8)[0]
-
-    return x
-
-
 # converting a numpy array to a torch tensor
-def np_to_torch_tensor(x, normalization=(-1, 1)):
+def np_to_torch_tensor(x, norm_from=(0, 255), norm_to=(-1, 1)):
     to_tensor = torchvision.transforms.ToTensor()
     if x.ndim == 3:
-        x = normalization(x, _to=normalization)
+        x = normalization(x, _from=norm_from, _to=norm_to)
         x = to_tensor(x)
         x = x.unsqueeze(0)
     else:
         raise ValueError('number of dimensions should be 3(H, W, C) - this is only for forwarding only a single image.')
+
+    return x
+
+
+# converting a torch tensor to numpy array
+def torch_tensor_to_np(x, norm_from=(-1, 1), norm_to=(0, 255)):
+    x = x.detach().cpu().numpy().transpose(0, 2, 3, 1)
+    x = np.clip(normalization(x, _from=norm_from, _to=norm_to), 0, 255).astype(np.uint8)[0]
 
     return x
