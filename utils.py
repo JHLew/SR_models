@@ -126,9 +126,9 @@ def augmentation(image):
 def downsample(image, scale_by, blur=False):
     if blur:
         lr_img = cv2.GaussianBlur(image, (7, 7), 1.6, borderType=cv2.BORDER_DEFAULT)
-        lr_img = cv2.resize(lr_img, dsize=None, fx=scale_by, fy=scale_by, interpolation=cv2.INTER_CUBIC)
+        lr_img = cv2.resize(lr_img, dsize=None, fx=1 / scale_by, fy=1 / scale_by, interpolation=cv2.INTER_CUBIC)
     else:
-        lr_img = cv2.resize(image, dsize=None, fx=scale_by, fy=scale_by, interpolation=cv2.INTER_AREA)
+        lr_img = cv2.resize(image, dsize=None, fx=1 / scale_by, fy=1 / scale_by, interpolation=cv2.INTER_AREA)
 
     return lr_img, image
 

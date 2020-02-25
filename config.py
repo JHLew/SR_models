@@ -1,4 +1,5 @@
 config = {
+  'model': 'SRResNet',
   'train': {
     'batch size': 16,
     'iterations': 1000000,
@@ -10,7 +11,7 @@ config = {
   },
 
   'valid':{
-    'batch size': 16,
+    'batch size': 1,
     'every': 1,
     'img_every': 100
   },

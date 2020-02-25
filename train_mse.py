@@ -7,16 +7,20 @@ from tensorboardX import SummaryWriter
 
 from utils import training_dataset
 from utils import evaluation_dataset as evaluation_dataset
+from evaluation import validate_img
+from config import config as _config
 
 from models import SRResNet as Generator
-from evaluation import validate_img
-from config import config
+# from models import ESDR as Generator
 
 # proj_directory = '/project'
 # data_directory = '/dataset'
 
-def train(config):
+
+def train(config, epoch_from=0):
+    model = config['model']
     print('process before training...')
+
     dataset = training_dataset(config['path']['dataset']['train'], in_norm=config['in_norm'])
     train_data = DataLoader(
         dataset=dataset, batch_size=config['train']['batch size'],
@@ -24,7 +28,11 @@ def train(config):
     )
 
     valid_dataset = evaluation_dataset(config['path']['dataset']['valid'])
-    valid_data = DataLoader(dataset=valid_dataset, batch_size=config['valid'])
+    valid_data = DataLoader(dataset=valid_dataset, batch_size=config['valid']['batch size'])
+
+    iterations_per_epoch = dataset.__len__() // config['train']['batch size'] + 1
+    n_epoch = config['train']['iterations'] // iterations_per_epoch
+    print('epochs scheduled: %d , iterations per epoch %d...' % (n_epoch, iterations_per_epoch))
 
     if not os.path.exists(config['path']['validation']):
         os.makedirs(config['path']['validation'])
@@ -34,16 +42,26 @@ def train(config):
         os.makedirs(config['path']['logs'])
     writer = SummaryWriter(config['path']['logs'])
 
-    iterations_per_epoch = dataset.__len__() // config['batch size'] + 1
-    n_epoch = config['train']['iterations'] // iterations_per_epoch
-    print('epochs scheduled: %d , iterations per epoch %d...' % (n_epoch, iterations_per_epoch))
-
     generator = Generator().cuda()
-    save_path_G = config['path']['ckpt']['SRResNet']
+    save_path_G = config['path']['ckpt'][model]
 
-    if os.path.exists(save_path_G):
-        generator.load_state_dict(torch.load(save_path_G))
-        print('reading generator checkpoints...')
+    if epoch_from == 0:
+        if os.path.exists(config['path']['validation']):
+            _old = os.listdir(config['path']['validation'])
+            for f in _old:
+                if os.path.isfile(f):
+                    os.remove(os.path.join(config['path']['logs'], f))
+        if os.path.exists(config['path']['logs']):
+            _old = os.listdir(config['path']['logs'])
+            for f in _old:
+                if os.path.isfile(f):
+                    os.remove(os.path.join(config['path']['logs'], f))
+    else:
+        if os.path.exists(save_path_G):
+            generator.load_state_dict(torch.load(save_path_G))
+            print('reading generator checkpoints...')
+        else:
+            raise FileNotFoundError('Pretrained weight not found.')
 
     # train Generator based on MSE
     G_optimizer = optim.Adam(generator.parameters(), lr=config['train']['lr'])
@@ -53,7 +71,7 @@ def train(config):
 
     # training
     print('start training...')
-    for epoch in range(n_epoch):
+    for epoch in range(epoch_from, n_epoch):
         generator = generator.train()
         for i, data in enumerate(train_data):
             lr, gt, name = data
@@ -70,7 +88,7 @@ def train(config):
             G_optimizer.step()
 
         # validation every epoch
-        if epoch % config['valid']['every']:
+        if epoch % config['valid']['every'] == 0:
             generator = generator.eval()
             val_mse_loss = 0
             n_it = 0
@@ -108,4 +126,4 @@ def train(config):
 
 
 if __name__ == '__main__':
-    train(config)
+    train(_config, epoch_from=0)
