@@ -4,6 +4,22 @@ import os
 from glob import glob
 from utils import np_to_torch_tensor, torch_tensor_to_np
 import torch
+from config import config
+
+
+def validate_img(model, img_path, tag):
+    lr = cv2.imread(img_path)
+    lr = np_to_torch_tensor(lr, norm_to=config['in_norm'])
+    lr = lr.float().cuda()
+
+    with torch.no_grad():
+        sr = model(lr)
+
+    sr = torch_tensor_to_np(sr)
+    name = os.path.basename(img_path)[:-4]
+
+    filename = os.path.join(config['path']['validation'], name + '_' + tag + '.png')
+    cv2.imwrite(filename=filename, img=sr)
 
 
 def forward(network, img_dir, out_dir, auto_convert=True):

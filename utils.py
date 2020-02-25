@@ -12,9 +12,10 @@ to_tensor = torchvision.transforms.ToTensor()
 
 # dataset for training
 class training_dataset(data.Dataset):
-    def __init__(self, dirs, crop_size=96, scale_by=4):
+    def __init__(self, dirs, crop_size=96, scale_by=4, in_norm=(-1, 1)):
         self.crop_size = crop_size
         self.scale_by = scale_by
+        self.in_norm = in_norm
         self.img_list = []
         for d in dirs:
             self.img_list = self.img_list + glob(os.path.join(d, '*.png'))
@@ -29,20 +30,23 @@ class training_dataset(data.Dataset):
 
         img = crop_img(img, size=(self.crop_size, self.crop_size))
         img = augmentation(img)
+
         lr_img, gt_img = downsample(img, scale_by=self.scale_by)
-        lr_img = normalization(lr_img)
+
+        lr_img = normalization(lr_img, _to=self.in_norm)
         gt_img = normalization(gt_img)
+
         lr_img = to_tensor(lr_img)
         gt_img = to_tensor(gt_img)
-
 
         return lr_img, gt_img, img_name
 
 
 # dataset for evaluation
 class evaluation_dataset(data.Dataset):
-    def __init__(self, dirs, scale_by=4):
+    def __init__(self, dirs, scale_by=4, in_norm=(-1, 1)):
         self.scale_by = scale_by
+        self.in_norm = in_norm
         self.img_list = []
         for d in dirs:
             self.img_list = self.img_list + glob(os.path.join(d, '*.png'))
@@ -65,7 +69,7 @@ class evaluation_dataset(data.Dataset):
         img = crop_img(img, size=(hr_h, hr_w), random=False)
         lr_img, gt_img = downsample(img, scale_by=self.scale_by)
 
-        lr_img = normalization(lr_img)
+        lr_img = normalization(lr_img, _to=self.in_norm)
         gt_img = normalization(gt_img)
 
         lr_img = to_tensor(lr_img)
@@ -184,7 +188,6 @@ def compute_gradient_penalty(D, real_samples, fake_samples):
 
 # converting a numpy array to a torch tensor
 def np_to_torch_tensor(x, norm_from=(0, 255), norm_to=(-1, 1)):
-    to_tensor = torchvision.transforms.ToTensor()
     if x.ndim == 3:
         x = normalization(x, _from=norm_from, _to=norm_to)
         x = to_tensor(x)
@@ -197,7 +200,7 @@ def np_to_torch_tensor(x, norm_from=(0, 255), norm_to=(-1, 1)):
 
 # converting a torch tensor to numpy array
 def torch_tensor_to_np(x, norm_from=(-1, 1), norm_to=(0, 255)):
-    x = x.detach().cpu().numpy().transpose(0, 2, 3, 1)
-    x = np.clip(normalization(x, _from=norm_from, _to=norm_to), 0, 255).astype(np.uint8)[0]
+    x = x[0].detach().cpu().numpy().transpose(1, 2, 0)
+    x = np.clip(normalization(x, _from=norm_from, _to=norm_to), 0, 255).astype(np.uint8)
 
     return x
