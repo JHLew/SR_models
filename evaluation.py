@@ -2,13 +2,25 @@ from skimage.measure import compare_psnr, compare_ssim, compare_mse
 import cv2
 import os
 from glob import glob
-from utils import np_to_torch_tensor, torch_tensor_to_np
 import torch
+
+from utils import crop_img, downsample, np_to_torch_tensor, torch_tensor_to_np
 from config import config
 
 
-def validate_img(model, img_path, tag):
+def validate_img(model, scale_by, img_path, tag):
     lr = cv2.imread(img_path)
+
+    h = lr.shape[0]
+    w = lr.shape[1]
+    lr_h = h // scale_by
+    lr_w = w // scale_by
+    hr_h = lr_h * scale_by
+    hr_w = lr_w * scale_by
+
+    lr = crop_img(lr, size=(hr_h, hr_w), random=False)
+    lr, _ = downsample(lr, scale_by=scale_by)
+
     lr = np_to_torch_tensor(lr, norm_to=config['in_norm'])
     lr = lr.float().cuda()
 

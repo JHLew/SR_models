@@ -1,12 +1,12 @@
 config = {
-  'model': 'SRResNet',
+  'model': 'EDSR',
   'train': {
     'batch size': 16,
     'iterations': 1000000,
     'lr': 1e-4,
     'decay':{
-      'at': None,
-      'every': None
+      'every': 2e+5,
+      'by': 0.5
     }
   },
 
@@ -18,6 +18,8 @@ config = {
 
   'in_norm': (-1, 1),
   'out_norm': (-1, 1),
+  'scale_by': 4,
+  'loss': 'L1',
 
   'path': {
     'project': '/project',
@@ -37,7 +39,7 @@ config = {
     },
 
     'validation': '/project/validation',
-    'logs': '/project/logs',
-
+    'logs': '/project/logs'
   }
+
 }
