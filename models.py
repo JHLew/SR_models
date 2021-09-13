@@ -1,6 +1,5 @@
 import torch.nn as nn
 import torch
-<<<<<<< HEAD
 
 def preprocess(x):
     return x * 2 - 1
@@ -8,9 +7,6 @@ def preprocess(x):
 
 def postprocess(x):
     return torch.clamp((x + 1) / 2, 0, 1)
-=======
-from utils import np_to_torch_tensor, torch_tensor_to_np
->>>>>>> c763628aee6f7b00b358442739a3ec261832fe33
 
 
 # EDSR architecture
@@ -29,20 +25,13 @@ class EDSR(nn.Module):
         )
 
     def forward(self, x):
-<<<<<<< HEAD
         x = preprocess(x)
 
-=======
->>>>>>> c763628aee6f7b00b358442739a3ec261832fe33
         x = self.head(x)
         res = self.body(x)
         _result = self.tail(res + x)
 
-<<<<<<< HEAD
         return postprocess(_result)
-=======
-        return _result
->>>>>>> c763628aee6f7b00b358442739a3ec261832fe33
 
 
 # SRResNet(SRGAN) architecture
@@ -76,11 +65,8 @@ class SRResNet(nn.Module):
         upsampled = self.upsample(block17 + block0)
         _result = self.final(upsampled)
 
-<<<<<<< HEAD
         return postprocess(_result)
-=======
-        return _result
->>>>>>> c763628aee6f7b00b358442739a3ec261832fe33
+
 
 
 # Discriminator from SRGAN - Instance Norm is used instead of Batch Norm: for WGAN-GP
@@ -181,66 +167,3 @@ class Upsample(nn.Module):
         x = self.act(x)
 
         return x
-<<<<<<< HEAD
-=======
-
-
-# module for simple forwarding
-class SR_network(nn.Module):
-    def __init__(self, model, eval_mode=True, dtype='np_array', w_path=None, in_norm=(-1, 1), out_norm=(-1, 1)):
-        super().__init__()
-        """
-        configure model for forwarding.
-        can be set to evaluation mode, with path to weights set
-        data type of input and output can be configured as
-        torch tensor(B, C, H, W) or a numpy array(H, W, C)
-        """
-
-        """
-        EDSR - in: (-1, 1), out: (-1, 1)
-        SRResNet - in: (0, 1), out: (-1, 1)
-        """
-
-        self.generator = model.cuda()
-        self.mode = eval_mode
-        self.in_norm = in_norm
-        self.out_norm = out_norm
-
-        if eval_mode:
-            self.generator.eval()
-            if w_path is None:
-                raise SyntaxError('To use the evaluation mode, the path to weight must be specified.')
-
-        if dtype == 'torch_tensor' or dtype == 'np_array':
-            self.dtype = dtype
-        else:
-            raise ValueError('dtype must be either "torch_tensor" or "np_array".')
-
-        if w_path is not None:
-            self.generator.load_state_dict(torch.load(w_path))
-
-    def forward(self, x):
-        """
-        forwarding done based on the initialization of the class.
-        normalization and renormalization done automatically if it is a numpy array.
-        for torch tensor, none is done but forwarding.
-        :param x: input
-        :return:
-        output is either a torch tensor (B, C, H, W) or a numpy array(H, W, C)
-        """
-        if self.dtype == 'np_array':
-            x = np_to_torch_tensor(x, norm_from=(0, 255), norm_to=self.in_norm)
-
-        x = x.float().cuda()
-
-        if self.mode:
-            with torch.no_grad():
-                _output = self.generator(x)
-        else:
-            _output = self.generator(x)
-
-        if self.dtype == 'np_array':
-            _output = torch_tensor_to_np(_output, norm_from=self.out_norm, norm_to=(0, 255))
-
-        return _output
->>>>>>> c763628aee6f7b00b358442739a3ec261832fe33
