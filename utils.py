@@ -9,11 +9,12 @@ from random import randint
 
 
 # dataset for training
-class training_dataset(data.Dataset):
-    def __init__(self, dirs, crop_size=96, scale_by=4, in_norm=(-1, 1)):
-        self.crop_size = crop_size
-        self.scale_by = scale_by
-        self.in_norm = in_norm
+class dataset(data.Dataset):
+    def __init__(self, dirs, patch_size=192, scale=4, is_train=True):
+        self.crop_size = patch_size
+        self.lr_size = patch_size // scale
+        self.scale_by = scale
+        self.is_train = is_train
         self.img_list = []
         for d in dirs:
             self.img_list = self.img_list + glob(os.path.join(d, '*.png'))
@@ -26,52 +27,18 @@ class training_dataset(data.Dataset):
         img = Image.open(img_path)
         img_name = os.path.basename(img_path)
 
-        img = crop_img(img, size=(self.crop_size, self.crop_size))
-        img = augmentation(img)
+        if self.is_train:
+            img, _ = crop_img(img, size=(self.crop_size, self.crop_size))
+            img, _ = augmentation(img)
+            lr_size = (self.lr_size, self.lr_size)
+        else:
+            w, h = img.size
+            lr_size = (int(w // self.scale_by), int(h // self.scale_by))
 
-        lr_img, gt_img = downsample(img, scale_by=self.scale_by)
-
-        lr_img = normalization(lr_img, _to=self.in_norm)
-        gt_img = normalization(gt_img)
-
-        lr_img = to_tensor(lr_img)
-        gt_img = to_tensor(gt_img)
-
-        return lr_img, gt_img, img_name
-
-
-# dataset for evaluation
-class evaluation_dataset(data.Dataset):
-    def __init__(self, dirs, scale_by=4, in_norm=(-1, 1)):
-        self.scale_by = scale_by
-        self.in_norm = in_norm
-        self.img_list = []
-        for d in dirs:
-            self.img_list = self.img_list + glob(os.path.join(d, '*.png'))
-
-    def __len__(self):
-        return len(self.img_list)
-
-    def __getitem__(self, index):
-        img_file = self.img_list[index]
-        img = cv2.imread(img_file)
-        img_name = os.path.basename(img_file)
-
-        h = img.shape[0]
-        w = img.shape[1]
-        lr_h = h // self.scale_by
-        lr_w = w // self.scale_by
-        hr_h = lr_h * self.scale_by
-        hr_w = lr_w * self.scale_by
-
-        img = crop_img(img, size=(hr_h, hr_w), random=False)
-        lr_img, gt_img = downsample(img, scale_by=self.scale_by)
-
-        lr_img = normalization(lr_img, _to=self.in_norm)
-        gt_img = normalization(gt_img)
+        lr_img = img.resize(lr_size, resample=Image.BICUBIC)
 
         lr_img = to_tensor(lr_img)
-        gt_img = to_tensor(gt_img)
+        gt_img = to_tensor(img)
 
         return lr_img, gt_img, img_name
 
@@ -88,72 +55,48 @@ def getFiles(dir, dataList):
 
 
 # crop a part of image
-def crop_img(image, size, random=True):
-    if random:
-        h = randint(0, image.shape[0] - size[0])
-        w = randint(0, image.shape[1] - size[1])
+def crop_img(img, size, custom=None):
+    width, height = size
+    if custom is None:
+        left = randint(0, img.size[0] - width)
+        top = randint(0, img.size[1] - height)
     else:
-        h = 0
-        w = 0
+        left, top = custom
 
-    cropped_img = image[h: h + size[0], w: w + size[1]]
+    cropped_img = img.crop((left, top, left + width, top + height))
 
-    return cropped_img
+    return cropped_img, (left, top)
 
 
 # data augmentation by flipping and rotating
-def augmentation(image):
+def augmentation(img, custom=None, do_rot=True):
+    if custom is None:
+        flip_flag = randint(0, 1)
+        rot = randint(0, 359)
+    else:
+        flip_flag, rot = custom
+        if rot is None:
+            do_rot = False
+
     # flipping
-    flip_flag = randint(0, 1)
     if flip_flag == 1:
-        image = cv2.flip(image, 1)
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
 
     # rotation
-    rot = randint(0, 359)
-    if rot < 90:
-        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-    elif rot < 180:
-        image = cv2.rotate(image, cv2.ROTATE_180)
-    elif rot < 270:
-        image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
-
-    return image
-
-
-# downsample by blur + bicubic / or / Area based interpolation
-def downsample(image, scale_by, blur=False):
-    if blur:
-        lr_img = cv2.GaussianBlur(image, (7, 7), 1.6, borderType=cv2.BORDER_DEFAULT)
-        lr_img = cv2.resize(lr_img, dsize=None, fx=1 / scale_by, fy=1 / scale_by, interpolation=cv2.INTER_CUBIC)
+    if do_rot:
+        if rot < 90:
+            rot = 45
+            img = img.rotate(90)
+        elif rot < 180:
+            rot = 135
+            img = img.rotate(180)
+        elif rot < 270:
+            rot = 225
+            img = img.rotate(270)
+        else:
+            rot = 315
     else:
-        lr_img = cv2.resize(image, dsize=None, fx=1 / scale_by, fy=1 / scale_by, interpolation=cv2.INTER_AREA)
+        rot = None
 
-    return lr_img, image
-
-
-# normalization
-def normalization(image, _from=(0, 255), _to=(-1, 1)):
-    if _from == _to:
-        return image
-
-    if _from == (0, 255):
-        if _to == (0, 1):
-            return image / 255
-        if _to == (-1, 1):
-            return image / 127.5 - 1
-
-    elif _from == (0, 1):
-        if _to == (0, 255):
-            return image * 255
-        if _to == (-1, 1):
-            return image * 2 - 1
-
-    elif _from == (-1, 1):
-        if _to == (0, 255):
-            return (image + 1) * 127.5
-        if _to == (0, 1):
-            return (image + 1) / 2
-
-    # else: out of range
-    raise ValueError('wrong range input: normalization only suppoerts range of (0, 1), (-1, 1), and (0, 255)')
+    return img, (flip_flag, rot)
 

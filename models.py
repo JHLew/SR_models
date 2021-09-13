@@ -65,7 +65,7 @@ class SRResNet(nn.Module):
         upsampled = self.upsample(block17 + block0)
         _result = self.final(upsampled)
 
-        return _result
+        return postprocess(_result)
 
 
 # Discriminator from SRGAN - Instance Norm is used instead of Batch Norm: for WGAN-GP

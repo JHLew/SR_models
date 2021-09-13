@@ -2,7 +2,6 @@ import torch
 import torchvision.transforms.functional as F
 import torch.nn as nn
 import os
-from config import config
 
 
 class validation:
@@ -38,7 +37,6 @@ class validation:
 
         val_mse_loss /= self.n
         print("Validation loss(MSE) at %2d:\t==>\t%.6f" % (epoch, val_mse_loss))
-        self.writer.add_scalar('G Loss/Total_G_Loss', val_mse_loss, (epoch + 1))
         self.writer.add_scalar('G Loss/HR_loss', val_mse_loss, (epoch + 1))
         self.generator.train()
         if self.best >= val_mse_loss:
@@ -49,12 +47,10 @@ class validation:
 
     def save(self, tag):
         save_dir = os.path.join(self.save_path, str(tag))
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        os.makedirs(save_dir, exist_ok=True)
 
         for i in range(self.n):
             img = self.valid_outputs[i]
             name = self.img_names[i]
 
             F.to_pil_image(img).save(os.path.join(save_dir, name))
-
