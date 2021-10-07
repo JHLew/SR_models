@@ -20,7 +20,7 @@ from models import EDSR as Generator
 def train(config, epoch_from=0):
     dataParallel = False
 
-    threshold = 5
+    threshold = 10
     threshold = threshold / 127.5
 
     print('process before training...')
@@ -100,7 +100,8 @@ def train(config, epoch_from=0):
             # forwarding
             sr = generator(lr)
             # g_loss = loss(sr, gt)
-            g_loss = torch.mean(relu((sr - gt) ** 2 - threshold))
+            # g_loss = torch.mean(relu(torch.abs(sr - gt) - threshold))  # error below thresh - no penalty
+            g_loss = torch.mean(-relu(-(torch.abs(sr - gt) - threshold)))  # error over thresh - no penalty
 
             # back propagation
             G_optimizer.zero_grad()

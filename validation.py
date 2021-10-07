@@ -3,9 +3,18 @@ import torchvision.transforms.functional as F
 import torch.nn as nn
 import os
 
+class PSNR:
+    def __init__(self, max):
+        super(PSNR, self).__init__()
+        self.max = max
+
+    def __call__(self, mse):
+        return 10 * torch.log(self.max / mse)
+
 
 class validation:
     mse = nn.MSELoss()
+    psnr = PSNR(max=1.)
 
     def __init__(self, network, loader, writer, save_path):
         self.generator = network
@@ -13,11 +22,12 @@ class validation:
         self.writer = writer
         self.n = len(loader.dataset)
         self.save_path = save_path
-        self.best = 100
+        self.best = 0
 
     def run(self, epoch):
         generator = self.generator.eval()
         val_mse_loss = 0
+        val_psnr = 0
 
         self.valid_outputs = []
         self.img_names = []
@@ -33,14 +43,19 @@ class validation:
                 self.valid_outputs.append(sr[0].cpu())
                 self.img_names.append(img_name[0])
 
-                val_mse_loss += self.mse(sr, gt).item()
+                mse = self.mse(sr, gt)
+                val_mse_loss += mse.item()
+                val_psnr += self.psnr(mse)
 
         val_mse_loss /= self.n
+        val_psnr /= self.n
+
         print("Validation loss(MSE) at %2d:\t==>\t%.6f" % (epoch, val_mse_loss))
         self.writer.add_scalar('G Loss/HR_loss', val_mse_loss, (epoch + 1))
+        self.writer.add_scalar('G Loss/PSNR', val_psnr, (epoch + 1))
         self.generator.train()
-        if self.best >= val_mse_loss:
-            self.best = val_mse_loss
+        if self.best <= val_psnr:
+            self.best = val_psnr
             return True
         else:
             return False
