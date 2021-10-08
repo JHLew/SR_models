@@ -33,6 +33,7 @@ class validation:
         self.img_names = []
 
         for _, val_data in enumerate(self.loader):
+            torch.cuda.empty_cache()
             lr, gt, img_name = val_data
             lr = lr.cuda()
             gt = gt.cuda()
@@ -45,12 +46,12 @@ class validation:
 
                 mse = self.mse(sr, gt)
                 val_mse_loss += mse.item()
-                val_psnr += self.psnr(mse)
+                val_psnr += self.psnr(mse).item()
 
         val_mse_loss /= self.n
         val_psnr /= self.n
 
-        print("Validation loss(MSE) at %2d:\t==>\t%.6f" % (epoch, val_mse_loss))
+        print(f"Validation loss(MSE) at {epoch:2d}:\t==>\tPSNR: {val_psnr:.2f}\tMSE: {val_mse_loss:.6f}")
         self.writer.add_scalar('G Loss/HR_loss', val_mse_loss, (epoch + 1))
         self.writer.add_scalar('G Loss/PSNR', val_psnr, (epoch + 1))
         self.generator.train()

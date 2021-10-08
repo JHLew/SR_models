@@ -12,7 +12,7 @@ config = {
   },
   'valid': {
     'batch size': 1,
-    'every': 1,
+    'every': 20,
     'img_every': 100
   },
   'scale': 4,

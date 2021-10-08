@@ -12,14 +12,13 @@ from utils import dataset
 from validation import validation
 
 from models import EDSR as Generator
+from tqdm import tqdm
 
 # proj_directory = '/project'
 # data_directory = '/dataset'
 
 
 def train(config, epoch_from=0):
-    dataParallel = False
-
     threshold = 10
     threshold = threshold / 127.5
 
@@ -80,9 +79,7 @@ def train(config, epoch_from=0):
     elif config['loss'] == 'MSE':
         loss = nn.MSELoss()
 
-    if dataParallel:
-        generator = nn.DataParallel(generator)
-    generator = generator.cuda()
+    generator = nn.DataParallel(generator).cuda()
 
     # validation
     valid = validation(generator, valid_data, writer, config['path']['validation'])
@@ -92,7 +89,7 @@ def train(config, epoch_from=0):
     for epoch in range(epoch_from, n_epoch):
         generator = generator.train()
         epoch_loss = 0
-        for i, data in enumerate(train_data):
+        for i, data in enumerate(tqdm(train_data)):
             lr, gt, _ = data
             lr = lr.cuda()
             gt = gt.cuda()
@@ -110,7 +107,7 @@ def train(config, epoch_from=0):
             lr_scheduler.step()
             epoch_loss += g_loss.item()
 
-        print('Training loss at {:d} : {:.8f}'.format(epoch, epoch_loss))
+        print('Training loss at {:d} : {:.8f}\n'.format(epoch, epoch_loss))
 
         # validation
         if (epoch + 1) % config['valid']['every'] == 0:
@@ -119,12 +116,9 @@ def train(config, epoch_from=0):
             # save validation image
             valid.save(tag='latest')
             if is_best:
-                if dataParallel:
-                    ckpt = {'model': generator.module.state_dict(), 'opt': G_optimizer.state_dict()}
-                else:
-                    ckpt = {'model': generator.state_dict(), 'opt': G_optimizer.state_dict()}
-
+                ckpt = {'model': generator.module.state_dict(), 'opt': G_optimizer.state_dict()}
                 torch.save(ckpt, save_path_G)
+            torch.cuda.empty_cache()
 
 
     # training process finished.
@@ -133,10 +127,7 @@ def train(config, epoch_from=0):
     valid.save(tag='final')
     writer.close()
     if is_best:
-        if dataParallel:
-            ckpt = {'model': generator.module.state_dict(), 'opt': G_optimizer.state_dict()}
-        else:
-            ckpt = {'model': generator.state_dict(), 'opt': G_optimizer.state_dict()}
+        ckpt = {'model': generator.module.state_dict(), 'opt': G_optimizer.state_dict()}
         torch.save(ckpt, save_path_G)
 
     print('training finished.')
