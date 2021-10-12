@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 
 def train(config, epoch_from=0):
-    threshold = 10
+    threshold = 5
     threshold = threshold / 127.5
 
     print('process before training...')
@@ -97,8 +97,12 @@ def train(config, epoch_from=0):
             # forwarding
             sr = generator(lr)
             # g_loss = loss(sr, gt)
+            distance = torch.abs(sr - gt)
+            shift = distance - threshold
+            thresholded_loss = relu(-shift)
+            g_loss = -thresholded_loss.mean()
             # g_loss = torch.mean(relu(torch.abs(sr - gt) - threshold))  # error below thresh - no penalty
-            g_loss = torch.mean(-relu(-(torch.abs(sr - gt) - threshold)))  # error over thresh - no penalty
+            # g_loss = torch.mean(-relu(-(torch.abs(sr - gt) - threshold)))  # error over thresh - no penalty
 
             # back propagation
             G_optimizer.zero_grad()

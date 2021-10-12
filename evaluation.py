@@ -105,8 +105,8 @@ def evaluate(pred_path, gt_path, rm_boundary=6):
 
 
 if __name__ == '__main__':
-    pred_path = './pred/*'
-    gt_path = './DIV2K/valid_HR/{}'
+    pred_path = './validation/baseline/final/*'
+    gt_path = 'C:/Users/JH/Datasets/DIV2K/valid_HR/{}'
     evaluate(pred_path, gt_path)
 
 
