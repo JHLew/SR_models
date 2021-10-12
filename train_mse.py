@@ -98,11 +98,13 @@ def train(config, epoch_from=0):
             sr = generator(lr)
             # g_loss = loss(sr, gt)
             distance = torch.abs(sr - gt)
-            shift = distance - threshold
-            thresholded_loss = relu(-shift)
-            g_loss = -thresholded_loss.mean()
-            # g_loss = torch.mean(relu(torch.abs(sr - gt) - threshold))  # error below thresh - no penalty
-            # g_loss = torch.mean(-relu(-(torch.abs(sr - gt) - threshold)))  # error over thresh - no penalty
+            shift = (distance - threshold)  # L1
+            thresholded_loss = relu(shift)  # penalty over t only
+            # thresholded_loss = relu(-shift)  # penalty under t only
+            if config['loss'] == 'MSE':
+                thresholded_loss = thresholded_loss ** 2
+            g_loss = thresholded_loss.mean()  # penalty over t only
+            # g_loss = -thresholded_loss.mean()  # penalty under t only
 
             # back propagation
             G_optimizer.zero_grad()
