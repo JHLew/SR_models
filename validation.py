@@ -5,11 +5,10 @@ import os
 
 class PSNR:
     def __init__(self, max):
-        super(PSNR, self).__init__()
         self.max = max
 
     def __call__(self, mse):
-        return 10 * torch.log(self.max / mse)
+        return 10 * torch.log10(self.max ** 2 / mse)
 
 
 class validation:
