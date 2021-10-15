@@ -12,11 +12,11 @@ config = {
   },
   'valid': {
     'batch size': 1,
-    'every': 20,
+    'every': 50,
     'img_every': 100
   },
   'scale': 4,
-  'loss': 'L1',
+  'loss': 'MSE',
 
   'path': {
     'project': '/project',

@@ -8,22 +8,24 @@ from models import EDSR as Generator
 from PIL import Image
 
 if __name__ == '__main__':
-    val_data_list = 'C:/Users/JH/Datasets/DIV2K/train_HR/*'
-    name = 'penalty_under_10'
+    # val_data_list = 'C:/Users/JH/Datasets/DIV2K/valid_HR/*'
+    val_data_list = '/dataset/DIV2K/valid_HR/*'
+    name = 'baseline'
     ckpt = f'./{name}.pth'
-    scale = 4
+    scale = config['scale']
     save_path = './eval'
 
     generator = Generator(scale_by=config['scale'], n_blocks=32, n_feats=256, res_scaling=0.1).cuda()
     generator.load_state_dict(torch.load(ckpt)['model'])
     generator = generator.eval()
 
-    val_data_list = glob(val_data_list)
+    val_data_list = sorted(glob(val_data_list))
     os.makedirs(os.path.join(save_path, name), exist_ok=True)
 
     for img in val_data_list:
         torch.cuda.empty_cache()
         img_name = os.path.basename(img)
+        print(img_name)
         img = Image.open(img).convert('RGB')
         w, h = img.size
         lr_w, lr_h = int(w // scale), int(h // scale)

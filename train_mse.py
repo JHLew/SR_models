@@ -145,36 +145,3 @@ def train(config, epoch_from=0):
 
 if __name__ == '__main__':
     train(_config, epoch_from=0)
-
-    # from PIL import Image
-    # import numpy as np
-    # r = np.zeros([250, 250, 1])
-    # g = np.zeros([250, 250, 1])
-    # b = np.zeros([250, 250, 1])
-    #
-    # # e = 50 / np.sqrt(3) + 1
-    # e = 30
-    # r.fill(100 + e)
-    # g.fill(100 + e)
-    # b.fill(100 + e)
-    #
-    # img = np.concatenate([r, g, b], axis=2)
-    # # img.fill(120)
-    # img = img.astype(np.uint8)
-    # Image.fromarray(img).save('./temp3.png')
-    #
-    # from validation import PSNR
-    # psnr = PSNR(max=255)
-    # from torchvision.transforms.functional import to_tensor
-    # tmp1 = to_tensor(Image.open('temp1.png').convert('RGB')) * 255  # 100 100 100
-    # tmp2 = to_tensor(Image.open('temp2.png').convert('RGB')) * 255  # 100 100 150
-    # tmp3 = to_tensor(Image.open('temp3.png').convert('RGB')) * 255  # 130 130 130
-    # tmp4 = to_tensor(Image.open('temp4.png').convert('RGB')) * 255  # 150 150 150
-    #
-    # mse = torch.mean((tmp1 - tmp2) ** 2)
-    # psnr_12 = psnr(mse)
-    # mse = torch.mean((tmp1 - tmp3) ** 2)
-    # psnr_13 = psnr(mse)
-    # mse = torch.mean((tmp1 - tmp4) ** 2)
-    # psnr_14 = psnr(mse)
-    # print(psnr_12, psnr_13, psnr_14)
